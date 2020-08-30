@@ -41,13 +41,13 @@ enum Timer2ClickButton {
 }
 
 interface Time2StateCommand {
+  currentSecond: number;
   isStarted: boolean;
   isWaited: boolean;
   command: Timer2ClickButton;
   commandDate: number;
   startDate: number;
   waitDate: number;
-  currentSecond: number;
 }
 
 @Component({
@@ -101,11 +101,11 @@ export class Timer2Component implements OnInit, AfterViewInit {
       ret.isWaited = true;
       ret.waitDate = stateStart ? commandDate : ret.waitDate;
     } else if (command == Timer2ClickButton.resetButton) {
-      ret.isWaited = true;
       ret.startDate = stateStart ? commandDate : 0;
       ret.waitDate = 0;
     } else if (command == Timer2ClickButton.stopButton) {
-      ret.isWaited = true;
+      ret.isStarted = false;
+      ret.isWaited = false;
       ret.startDate = 0;
       ret.waitDate = 0;
     }
@@ -131,23 +131,18 @@ export class Timer2Component implements OnInit, AfterViewInit {
     );
 
     let startItem = {
+      currentSecond: 0,
       isStarted: false,
       isWaited: false,
       command: Timer2ClickButton.stopButton,
       commandDate: 0,
       startDate: 0,
       waitDate: 0,
-      currentSecond: 0,
     };
     let events$ = eventsRaw$.pipe(
       map((x) => ({
-        isStarted: false,
-        isWaited: false,
         command: x,
         commandDate: Date.now(),
-        startDate: 0,
-        waitDate: 0,
-        currentSecond: 0,
       })),
       scan(
         (s: Time2StateCommand, curr) =>
@@ -159,19 +154,22 @@ export class Timer2Component implements OnInit, AfterViewInit {
     );
 
     let super$ = events$.pipe(
-      startWith({
-        isStarted: false,
-        isWaited: false,
-        command: Timer2ClickButton.stopButton,
-        currentSecond: 0,
-      }),
+      startWith(startItem),
       switchMap((e) => {
         if (e.isStarted && !e.isWaited) {
+          let waitedSecond =
+            e.waitDate > 0
+              ? (e.waitDate - e.startDate) / 1000
+              : (e.commandDate - e.startDate) / 1000;
           return interval(1000).pipe(
-            map((x) => ({ ...e, ...{ currentSecond: x } }))
+            map((x) => ({ ...e, ...{ currentSecond: waitedSecond + x } }))
           );
         } else {
-          return NEVER.pipe(startWith(e));
+          let waitedSecond =
+            e.isStarted && e.isWaited ? (e.waitDate - e.startDate) / 1000 : 0;
+          return NEVER.pipe(
+            startWith({ ...e, ...{ currentSecond: waitedSecond } })
+          );
         }
       }),
       publish(),
@@ -187,6 +185,10 @@ export class Timer2Component implements OnInit, AfterViewInit {
     });
     data$.subscribe((x) => {
       console.log(x.toTimeString().substr(0, 8));
+    });
+
+    super$.subscribe((x) => {
+      console.log(x);
     });
   }
 }
