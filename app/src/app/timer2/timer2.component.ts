@@ -96,7 +96,7 @@ export class Timer2Component implements OnInit, AfterViewInit {
         : stateStart
         ? 0
         : ret.startDate;
-      ret.waitDate = stateStop ? 0 : stateStart ? 0 : ret.waitDate;
+      ret.waitDate = stateStop ? 0 : stateStart ? 0 : stateWait ? 0 : 0;
     } else if (command == Timer2ClickButton.waitButton) {
       ret.isWaited = true;
       ret.waitDate = stateStart ? commandDate : ret.waitDate;
@@ -157,16 +157,20 @@ export class Timer2Component implements OnInit, AfterViewInit {
       startWith(startItem),
       switchMap((e) => {
         if (e.isStarted && !e.isWaited) {
+          console.log('switch 1', e);
           let waitedSecond =
             e.waitDate > 0
               ? (e.waitDate - e.startDate) / 1000
               : (e.commandDate - e.startDate) / 1000;
+          console.log('switch 1', waitedSecond);
           return interval(1000).pipe(
             map((x) => ({ ...e, ...{ currentSecond: waitedSecond + x } }))
           );
         } else {
+          console.log('switch 2', e);
           let waitedSecond =
             e.isStarted && e.isWaited ? (e.waitDate - e.startDate) / 1000 : 0;
+          console.log('switch 2', waitedSecond);
           return NEVER.pipe(
             startWith({ ...e, ...{ currentSecond: waitedSecond } })
           );
