@@ -1,0 +1,10 @@
+<div class="display">
+  <span>{{data | async | date:"HH:mm:ss"}}</span>
+</div>
+<div class="control">
+  <button type="button" class="btn" [class.active]="!isStarted" (click)="switchStart()"><span>Start
+      / Stop</span></button>
+  <button #waitButton type="button" [class.active]="isStarted" class="btn">Wait</button>
+  <button type="button" class="btn" [class.active]="isStarted||secondsAfterStart>0"
+    (click)="reset()"><span>Reset</span></button>
+</div>

@@ -1,0 +1,9 @@
+<div class="display">
+  <span>{{data | async | date:"HH:mm:ss"}}</span>
+</div>
+<div class="control">
+  <button #startButton type="button" class="btn">Start/Stop</button>
+  <button #waitButton type="button" class="btn">Wait</button>
+  <button #resetButton type="button" class="btn">Reset</button>
+</div>
+<div>{{secondsAfterStart}}</div>

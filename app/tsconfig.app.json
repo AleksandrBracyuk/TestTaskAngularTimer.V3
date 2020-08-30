@@ -1,0 +1,16 @@
+/* To learn more about this file see: https://angular.io/config/tsconfig. */
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./out-tsc/app",
+    "types": [],
+    "lib": ["ES2018", "dom"]
+    /*https://stackoverflow.com/questions/52593816/how-do-i-target-es2018-in-typescript
+    es2018 - чтобы использовать spread оператор для object {...obj1,...obj2}
+    dom - чтобы не было ошибки "console не распознано", взял с https: //github.com/microsoft/TypeScript/issues/9545:
+    "tsconfig, libсвойство add "dom""
+    */
+  },
+  "files": ["src/main.ts", "src/polyfills.ts"],
+  "include": ["src/**/*.d.ts"]
+}
