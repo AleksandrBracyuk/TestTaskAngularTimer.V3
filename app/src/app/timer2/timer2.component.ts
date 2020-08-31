@@ -31,12 +31,10 @@ import { Timer2Command } from './timer2-command.enum';
 import { Timer2State } from './timer2-state.enum';
 
 interface Time2StateCommand {
-  currentSecond: number;
-  state: Timer2State;
-  isStarted: boolean;
-  isWaited: boolean;
   command: Timer2Command;
   commandDate: number;
+  state: Timer2State;
+  currentSecond: number;
   startDate: number;
   waitDate: number;
 }
@@ -64,56 +62,73 @@ export class Timer2Component implements OnInit, AfterViewInit {
     command: Timer2Command,
     commandDate: number
   ): Time2StateCommand {
-    let ret = { ...oldState, ...{ command, commandDate } };
-    let stateStart = oldState.isStarted && !oldState.isWaited;
-    let stateStop = !oldState.isStarted;
-    let stateWait = oldState.isStarted && oldState.isWaited;
+    let next = { ...oldState, ...{ command, commandDate } };
 
-    if (command == Timer2Command.startCommand) {
-      ret.isStarted = stateStop
-        ? true
-        : stateStart
-        ? false
-        : oldState.isStarted;
-      ret.isWaited = false;
-      ret.command = stateStart ? Timer2Command.stopCommand : command;
-      ret.startDate = stateWait
-        ? commandDate - (oldState.waitDate - oldState.startDate)
-        : /* он простоял ранее интервал (oldState.waitDate - oldState.startDate)
-        поэтому тепеть он стартует конечно в commandDate, но чтобы счетчик учел время простоя - то время старта сдвигаем
-        в прошлое на время простоя, т.е. на  (oldState.waitDate - oldState.startDate)*/
-        stateStop
-        ? commandDate
-        : stateStart
-        ? 0
-        : ret.startDate;
-      ret.waitDate = stateStop ? 0 : stateStart ? 0 : stateWait ? 0 : 0;
-      ret.currentSecond = stateStop
-        ? 0
-        : stateStart
-        ? Math.round((oldState.commandDate - oldState.startDate) / 1000)
-        : stateWait
-        ? Math.round((oldState.waitDate - oldState.startDate) / 1000)
-        : 0;
-    } else if (command == Timer2Command.waitCommand) {
-      ret.isWaited = true;
-      ret.waitDate = stateStart ? commandDate : ret.waitDate;
-      ret.currentSecond = stateStart
-        ? Math.round((oldState.commandDate - oldState.startDate) / 1000)
-        : ret.currentSecond;
-    } else if (command == Timer2Command.resetCommand) {
-      ret.startDate = stateStart ? commandDate : 0;
-      ret.waitDate = 0;
-      ret.currentSecond = 0;
-    } else if (command == Timer2Command.stopCommand) {
-      ret.isStarted = false;
-      ret.isWaited = false;
-      ret.startDate = 0;
-      ret.waitDate = 0;
-      ret.currentSecond = 0;
+    let oldIsStart = oldState.state == Timer2State.start;
+    let oldIsStop = oldState.state == Timer2State.stop;
+    let oldIsWait = oldState.state == Timer2State.wait;
+    let commandIsStart = command == Timer2Command.startCommand;
+    let commandIsWait = command == Timer2Command.waitCommand;
+    let commandIsReset = command == Timer2Command.resetCommand;
+    let commandIsStop = command == Timer2Command.stopCommand;
+    let start = Timer2State.start;
+    let stop = Timer2State.stop;
+    let wait = Timer2State.wait;
+
+    if (commandIsStart) {
+      if (oldIsStart) {
+        next.command = Timer2Command.stopCommand;
+        commandIsStart = false;
+        commandIsStop = true;
+      }
     }
 
-    return ret;
+    if (commandIsStart) {
+      if (oldIsStart) {
+        //----не бывает, см. выше - это команда stop---
+      }
+      if (oldIsStop) {
+        next.state = start;
+        next.startDate = commandDate;
+        next.currentSecond = 0;
+      }
+      if (oldIsWait) {
+        next.state = start;
+        next.startDate = commandDate - (oldState.waitDate - oldState.startDate);
+        next.waitDate = 0;
+        next.currentSecond = Math.round(
+          (oldState.waitDate - oldState.startDate) / 1000
+        );
+      }
+    }
+    if (commandIsWait) {
+      if (oldIsStart) {
+        next.state = wait;
+        next.waitDate = commandDate;
+        next.currentSecond = Math.round(
+          (oldState.commandDate - oldState.startDate) / 1000
+        );
+      }
+    }
+    if (commandIsReset) {
+      if (oldIsStart) {
+        next.startDate = commandDate;
+        next.currentSecond = 0;
+      }
+      if (oldIsWait) {
+        next.startDate = commandDate;
+        next.waitDate = commandDate;
+        next.currentSecond = 0;
+      }
+    }
+    if (commandIsStop) {
+      next.state = stop;
+      next.startDate = 0;
+      next.waitDate = 0;
+      next.currentSecond = 0;
+    }
+    console.log('NextState', next);
+    return next;
   }
 
   ngAfterViewInit() {
@@ -135,13 +150,12 @@ export class Timer2Component implements OnInit, AfterViewInit {
     );
 
     let startItem = {
-      currentSecond: 0,
-      isStarted: false,
-      isWaited: false,
       command: Timer2Command.stopCommand,
       commandDate: 0,
+      state: Timer2State.stop,
       startDate: 0,
       waitDate: 0,
+      currentSecond: 0,
     };
     let events$ = eventsRaw$.pipe(
       map((x) => ({
@@ -167,24 +181,26 @@ export class Timer2Component implements OnInit, AfterViewInit {
                   1000
               )
             : 0;
-
-        if (e.isStarted && !e.isWaited) {
-          // let waitedSecond =
-          //   e.waitDate > 0
-          //     ? Math.round((e.waitDate - e.startDate) / 1000)
-          //     : Math.round((e.commandDate - e.startDate) / 1000);
-          // console.log('switch 1', waitedSecond, e);
-          console.log('switch 1', currentSecond, e);
-          return interval(1000).pipe(
-            map((x) => ({ ...e, ...{ currentSecond: currentSecond + x + 1 } }))
-          );
+        if (e.state == Timer2State.start) {
+          // console.log('switch 1', currentSecond, e);
+          if (e.command != Timer2Command.resetCommand) {
+            return interval(1000).pipe(
+              map((x) => ({
+                ...e,
+                ...{ currentSecond: currentSecond + x + 1 },
+              }))
+            );
+          } else {
+            return interval(1000).pipe(
+              startWith(0),
+              map((x) => ({
+                ...e,
+                ...{ currentSecond: currentSecond + x },
+              }))
+            );
+          }
         } else {
-          // let waitedSecond =
-          //   e.isStarted && e.isWaited
-          //     ? Math.round((e.waitDate - e.startDate) / 1000)
-          //     : 0;
-          // console.log('switch 2', waitedSecond, e);
-          console.log('switch 2', currentSecond, e);
+          // console.log('switch 2', currentSecond, e);
           return NEVER.pipe(
             startWith({ ...e, ...{ currentSecond: currentSecond } })
           );
@@ -205,8 +221,8 @@ export class Timer2Component implements OnInit, AfterViewInit {
     //   console.log(x.toTimeString().substr(0, 8));
     // });
 
-    super$.subscribe((x) => {
-      console.log(x);
-    });
+    // super$.subscribe((x) => {
+    //   console.log(x);
+    // });
   }
 }
