@@ -1,8 +1,3 @@
-/*
-не работает получение во внешнем потоке последнего
-значения вложенного потока
-*/
-
 import {
   Component,
   OnInit,
@@ -32,19 +27,15 @@ import {
   refCount,
 } from 'rxjs/operators';
 import { buffer, filter, throttleTime } from 'rxjs/operators';
-
-enum Timer2ClickButton {
-  startButton,
-  waitButton,
-  resetButton,
-  stopButton,
-}
+import { Timer2Command } from './timer2-command.enum';
+import { Timer2State } from './timer2-state.enum';
 
 interface Time2StateCommand {
   currentSecond: number;
+  state: Timer2State;
   isStarted: boolean;
   isWaited: boolean;
-  command: Timer2ClickButton;
+  command: Timer2Command;
   commandDate: number;
   startDate: number;
   waitDate: number;
@@ -70,7 +61,7 @@ export class Timer2Component implements OnInit, AfterViewInit {
 
   private NextState(
     oldState: Time2StateCommand,
-    command: Timer2ClickButton,
+    command: Timer2Command,
     commandDate: number
   ): Time2StateCommand {
     let ret = { ...oldState, ...{ command, commandDate } };
@@ -78,14 +69,14 @@ export class Timer2Component implements OnInit, AfterViewInit {
     let stateStop = !oldState.isStarted;
     let stateWait = oldState.isStarted && oldState.isWaited;
 
-    if (command == Timer2ClickButton.startButton) {
+    if (command == Timer2Command.startCommand) {
       ret.isStarted = stateStop
         ? true
         : stateStart
         ? false
         : oldState.isStarted;
       ret.isWaited = false;
-      ret.command = stateStart ? Timer2ClickButton.stopButton : command;
+      ret.command = stateStart ? Timer2Command.stopCommand : command;
       ret.startDate = stateWait
         ? commandDate - (oldState.waitDate - oldState.startDate)
         : /* он простоял ранее интервал (oldState.waitDate - oldState.startDate)
@@ -104,17 +95,17 @@ export class Timer2Component implements OnInit, AfterViewInit {
         : stateWait
         ? Math.round((oldState.waitDate - oldState.startDate) / 1000)
         : 0;
-    } else if (command == Timer2ClickButton.waitButton) {
+    } else if (command == Timer2Command.waitCommand) {
       ret.isWaited = true;
       ret.waitDate = stateStart ? commandDate : ret.waitDate;
       ret.currentSecond = stateStart
         ? Math.round((oldState.commandDate - oldState.startDate) / 1000)
         : ret.currentSecond;
-    } else if (command == Timer2ClickButton.resetButton) {
+    } else if (command == Timer2Command.resetCommand) {
       ret.startDate = stateStart ? commandDate : 0;
       ret.waitDate = 0;
       ret.currentSecond = 0;
-    } else if (command == Timer2ClickButton.stopButton) {
+    } else if (command == Timer2Command.stopCommand) {
       ret.isStarted = false;
       ret.isWaited = false;
       ret.startDate = 0;
@@ -129,25 +120,25 @@ export class Timer2Component implements OnInit, AfterViewInit {
     let stream = (b, t) => fromEvent(b, 'click').pipe(mapTo(t));
     let waitButtonStreamRaw$ = stream(
       this.waitButton.nativeElement,
-      Timer2ClickButton.waitButton
+      Timer2Command.waitCommand
     );
     let waitButtonStream$ = waitButtonStreamRaw$.pipe(
       buffer(waitButtonStreamRaw$.pipe(throttleTime(300))),
       filter((clickArray) => clickArray.length > 1),
-      mapTo(Timer2ClickButton.waitButton)
+      mapTo(Timer2Command.waitCommand)
     );
     let eventsRaw$ = merge(
-      stream(this.startButton.nativeElement, Timer2ClickButton.startButton),
-      stream(this.waitButton.nativeElement, Timer2ClickButton.waitButton),
+      stream(this.startButton.nativeElement, Timer2Command.startCommand),
+      stream(this.waitButton.nativeElement, Timer2Command.waitCommand),
       // waitButtonStream$,
-      stream(this.resetButton.nativeElement, Timer2ClickButton.resetButton)
+      stream(this.resetButton.nativeElement, Timer2Command.resetCommand)
     );
 
     let startItem = {
       currentSecond: 0,
       isStarted: false,
       isWaited: false,
-      command: Timer2ClickButton.stopButton,
+      command: Timer2Command.stopCommand,
       commandDate: 0,
       startDate: 0,
       waitDate: 0,
