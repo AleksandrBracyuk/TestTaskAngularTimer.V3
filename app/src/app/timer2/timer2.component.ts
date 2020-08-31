@@ -50,6 +50,10 @@ export class Timer2Component implements OnInit, AfterViewInit {
   @ViewChild('resetButton') resetButton: ElementRef;
 
   data: Observable<Date>;
+  isStart: boolean = false;
+  isWait: boolean = false;
+  isStop: boolean = true;
+  isActiveResetButton: boolean = false;
 
   constructor() {}
 
@@ -214,6 +218,14 @@ export class Timer2Component implements OnInit, AfterViewInit {
       map((x) => new Date(2020, 0, 1, 0, 0, x.currentSecond))
     );
     this.data = data$;
+
+    super$.subscribe((x) => {
+      this.isStart = x.state == Timer2State.start;
+      this.isStop = x.state == Timer2State.stop;
+      this.isWait = x.state == Timer2State.wait;
+      this.isActiveResetButton = x.currentSecond > 0;
+    });
+
     // events$.subscribe((x) => {
     //   console.log(x);
     // });
