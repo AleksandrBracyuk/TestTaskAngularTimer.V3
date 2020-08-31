@@ -61,80 +61,6 @@ export class Timer2Component implements OnInit, AfterViewInit {
     // this.data = NEVER.pipe(startWith(new Date(2020, 0, 1, 0, 0, 0)));
   }
 
-  private NextState(
-    oldState: Time2StateCommand,
-    command: Timer2Command,
-    commandDate: number
-  ): Time2StateCommand {
-    let next = { ...oldState, ...{ command, commandDate } };
-
-    let oldIsStart = oldState.state == Timer2State.start;
-    let oldIsStop = oldState.state == Timer2State.stop;
-    let oldIsWait = oldState.state == Timer2State.wait;
-    let commandIsStart = command == Timer2Command.startCommand;
-    let commandIsWait = command == Timer2Command.waitCommand;
-    let commandIsReset = command == Timer2Command.resetCommand;
-    let commandIsStop = command == Timer2Command.stopCommand;
-    let start = Timer2State.start;
-    let stop = Timer2State.stop;
-    let wait = Timer2State.wait;
-
-    if (commandIsStart) {
-      if (oldIsStart) {
-        next.command = Timer2Command.stopCommand;
-        commandIsStart = false;
-        commandIsStop = true;
-      }
-    }
-
-    if (commandIsStart) {
-      if (oldIsStart) {
-        //----не бывает, см. выше - это команда stop---
-      }
-      if (oldIsStop) {
-        next.state = start;
-        next.startDate = commandDate;
-        next.currentSecond = 0;
-      }
-      if (oldIsWait) {
-        next.state = start;
-        next.startDate = commandDate - (oldState.waitDate - oldState.startDate);
-        next.waitDate = 0;
-        next.currentSecond = Math.round(
-          (oldState.waitDate - oldState.startDate) / 1000
-        );
-      }
-    }
-    if (commandIsWait) {
-      if (oldIsStart) {
-        next.state = wait;
-        next.waitDate = commandDate;
-        next.currentSecond = Math.round(
-          (oldState.commandDate - oldState.startDate) / 1000
-        );
-      }
-    }
-    if (commandIsReset) {
-      if (oldIsStart) {
-        next.startDate = commandDate;
-        next.currentSecond = 0;
-      }
-      if (oldIsWait) {
-        next.startDate = commandDate;
-        next.waitDate = commandDate;
-        next.currentSecond = 0;
-      }
-    }
-    if (commandIsStop) {
-      next.state = stop;
-      next.startDate = 0;
-      next.waitDate = 0;
-      next.currentSecond = 0;
-    }
-    console.log('NextState', next);
-    return next;
-  }
-
   ngAfterViewInit() {
     let stream = (b, t) => fromEvent(b, 'click').pipe(mapTo(t));
     let waitButtonStreamRaw$ = stream(
@@ -236,5 +162,79 @@ export class Timer2Component implements OnInit, AfterViewInit {
     // super$.subscribe((x) => {
     //   console.log(x);
     // });
+  }
+
+  private NextState(
+    oldState: Time2StateCommand,
+    command: Timer2Command,
+    commandDate: number
+  ): Time2StateCommand {
+    let next = { ...oldState, ...{ command, commandDate } };
+
+    let oldIsStart = oldState.state == Timer2State.start;
+    let oldIsStop = oldState.state == Timer2State.stop;
+    let oldIsWait = oldState.state == Timer2State.wait;
+    let commandIsStart = command == Timer2Command.startCommand;
+    let commandIsWait = command == Timer2Command.waitCommand;
+    let commandIsReset = command == Timer2Command.resetCommand;
+    let commandIsStop = command == Timer2Command.stopCommand;
+    let start = Timer2State.start;
+    let stop = Timer2State.stop;
+    let wait = Timer2State.wait;
+
+    if (commandIsStart) {
+      if (oldIsStart) {
+        next.command = Timer2Command.stopCommand;
+        commandIsStart = false;
+        commandIsStop = true;
+      }
+    }
+
+    if (commandIsStart) {
+      if (oldIsStart) {
+        //----не бывает, см. выше - это команда stop---
+      }
+      if (oldIsStop) {
+        next.state = start;
+        next.startDate = commandDate;
+        next.currentSecond = 0;
+      }
+      if (oldIsWait) {
+        next.state = start;
+        next.startDate = commandDate - (oldState.waitDate - oldState.startDate);
+        next.waitDate = 0;
+        next.currentSecond = Math.round(
+          (oldState.waitDate - oldState.startDate) / 1000
+        );
+      }
+    }
+    if (commandIsWait) {
+      if (oldIsStart) {
+        next.state = wait;
+        next.waitDate = commandDate;
+        next.currentSecond = Math.round(
+          (oldState.commandDate - oldState.startDate) / 1000
+        );
+      }
+    }
+    if (commandIsReset) {
+      if (oldIsStart) {
+        next.startDate = commandDate;
+        next.currentSecond = 0;
+      }
+      if (oldIsWait) {
+        next.startDate = commandDate;
+        next.waitDate = commandDate;
+        next.currentSecond = 0;
+      }
+    }
+    if (commandIsStop) {
+      next.state = stop;
+      next.startDate = 0;
+      next.waitDate = 0;
+      next.currentSecond = 0;
+    }
+    console.log('NextState', next);
+    return next;
   }
 }
