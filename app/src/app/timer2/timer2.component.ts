@@ -148,8 +148,8 @@ export class Timer2Component implements OnInit, AfterViewInit {
     );
     let eventsRaw$ = merge(
       stream(this.startButton.nativeElement, Timer2Command.startCommand),
-      stream(this.waitButton.nativeElement, Timer2Command.waitCommand),
-      // waitButtonStream$,
+      // stream(this.waitButton.nativeElement, Timer2Command.waitCommand),
+      waitButtonStream$,
       stream(this.resetButton.nativeElement, Timer2Command.resetCommand)
     );
 
