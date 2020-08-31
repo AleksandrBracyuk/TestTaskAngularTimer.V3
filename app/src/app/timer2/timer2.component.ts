@@ -97,17 +97,29 @@ export class Timer2Component implements OnInit, AfterViewInit {
         ? 0
         : ret.startDate;
       ret.waitDate = stateStop ? 0 : stateStart ? 0 : stateWait ? 0 : 0;
+      ret.currentSecond = stateStop
+        ? 0
+        : stateStart
+        ? Math.round((oldState.commandDate - oldState.startDate) / 1000)
+        : stateWait
+        ? Math.round((oldState.waitDate - oldState.startDate) / 1000)
+        : 0;
     } else if (command == Timer2ClickButton.waitButton) {
       ret.isWaited = true;
       ret.waitDate = stateStart ? commandDate : ret.waitDate;
+      ret.currentSecond = stateStart
+        ? Math.round((oldState.commandDate - oldState.startDate) / 1000)
+        : ret.currentSecond;
     } else if (command == Timer2ClickButton.resetButton) {
       ret.startDate = stateStart ? commandDate : 0;
       ret.waitDate = 0;
+      ret.currentSecond = 0;
     } else if (command == Timer2ClickButton.stopButton) {
       ret.isStarted = false;
       ret.isWaited = false;
       ret.startDate = 0;
       ret.waitDate = 0;
+      ret.currentSecond = 0;
     }
 
     return ret;
@@ -126,7 +138,8 @@ export class Timer2Component implements OnInit, AfterViewInit {
     );
     let eventsRaw$ = merge(
       stream(this.startButton.nativeElement, Timer2ClickButton.startButton),
-      waitButtonStream$,
+      stream(this.waitButton.nativeElement, Timer2ClickButton.waitButton),
+      // waitButtonStream$,
       stream(this.resetButton.nativeElement, Timer2ClickButton.resetButton)
     );
 
@@ -154,25 +167,35 @@ export class Timer2Component implements OnInit, AfterViewInit {
     );
 
     let super$ = events$.pipe(
-      startWith(startItem),
+      // startWith(startItem),
       switchMap((e) => {
+        let currentSecond =
+          e.startDate > 0
+            ? Math.round(
+                ((e.waitDate > 0 ? e.waitDate : e.commandDate) - e.startDate) /
+                  1000
+              )
+            : 0;
+
         if (e.isStarted && !e.isWaited) {
-          console.log('switch 1', e);
-          let waitedSecond =
-            e.waitDate > 0
-              ? (e.waitDate - e.startDate) / 1000
-              : (e.commandDate - e.startDate) / 1000;
-          console.log('switch 1', waitedSecond);
+          // let waitedSecond =
+          //   e.waitDate > 0
+          //     ? Math.round((e.waitDate - e.startDate) / 1000)
+          //     : Math.round((e.commandDate - e.startDate) / 1000);
+          // console.log('switch 1', waitedSecond, e);
+          console.log('switch 1', currentSecond, e);
           return interval(1000).pipe(
-            map((x) => ({ ...e, ...{ currentSecond: waitedSecond + x } }))
+            map((x) => ({ ...e, ...{ currentSecond: currentSecond + x + 1 } }))
           );
         } else {
-          console.log('switch 2', e);
-          let waitedSecond =
-            e.isStarted && e.isWaited ? (e.waitDate - e.startDate) / 1000 : 0;
-          console.log('switch 2', waitedSecond);
+          // let waitedSecond =
+          //   e.isStarted && e.isWaited
+          //     ? Math.round((e.waitDate - e.startDate) / 1000)
+          //     : 0;
+          // console.log('switch 2', waitedSecond, e);
+          console.log('switch 2', currentSecond, e);
           return NEVER.pipe(
-            startWith({ ...e, ...{ currentSecond: waitedSecond } })
+            startWith({ ...e, ...{ currentSecond: currentSecond } })
           );
         }
       }),
@@ -184,12 +207,12 @@ export class Timer2Component implements OnInit, AfterViewInit {
       map((x) => new Date(2020, 0, 1, 0, 0, x.currentSecond))
     );
     this.data = data$;
-    events$.subscribe((x) => {
-      console.log(x);
-    });
-    data$.subscribe((x) => {
-      console.log(x.toTimeString().substr(0, 8));
-    });
+    // events$.subscribe((x) => {
+    //   console.log(x);
+    // });
+    // data$.subscribe((x) => {
+    //   console.log(x.toTimeString().substr(0, 8));
+    // });
 
     super$.subscribe((x) => {
       console.log(x);
